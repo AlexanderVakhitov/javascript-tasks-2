@@ -70,7 +70,40 @@ var importFromCsv = function(filename) {
    Функция вывода всех телефонов в виде ASCII (задача со звёздочкой!).
 */
 var showTable = function() {
-    /* Реализация где-то тут. */
+    var width = 25;
+    var result = '';
+    /* Формирование таблицы. */
+    result += '┌' + makeString('-', width) +
+                '┬' + makeString('-', width) +
+                '╥' + makeString('-', width) + '┐\r\n';
+    result += '│' + ' Имя' + makeString(' ', width-4) +
+                '│' + ' Телефон' + makeString(' ', width-8) +
+                '║' + ' Email' + makeString(' ', width-6) + '│\r\n';
+    result += '├' + makeString('-', width) +
+                '┼' + makeString('-', width) +
+                '╫' + makeString('-', width) + '┤\r\n';
+    for (var i=0; i<phoneBook.length; ++i) {
+        result += '│' + phoneBook[i].name + makeString(' ', width-phoneBook[i].name.length) +
+                    '│' + phoneBook[i].phone + makeString(' ', width-phoneBook[i].phone.length) +
+                    '║' + phoneBook[i].email + makeString(' ', width-phoneBook[i].email.length) +
+                    '│\r\n';
+    }
+    result += '└' + makeString('-', width) +
+                '┴' + makeString('-', width) +
+                '╨' + makeString('-', width) + '┘\r\n';
+    console.log(result);
+};
+
+/*
+    Функция для генерации строк повторяющихся символов.
+ */
+
+var makeString = function(char, amount) {
+    var result = '';
+    while (amount--) {
+        result += char;
+    }
+    return result;
 };
 
 /*
