@@ -1,8 +1,8 @@
 'use strict';
 
-var VALID_NAME = /^[ _\-a-zа-я0-9]+$/i;
-var VALID_PHONE = /^\+?\d{0,2} *(\d{3}|\(\d{3}\)) *\d{3}(-| *)?\d(-| *)?\d{3}$/;
-var VALID_EMAIL = /^[_\-a-zа-я0-9]+@[_\-a-zа-я0-9]+(\.[a-zа-я0-9]+)+$/i;
+var VALID_NAME = /^[_a-zа-я0-9][ _\-a-zа-я0-9]*[_a-zа-я0-9]$/i;
+var VALID_PHONE = /^\+?\d{1,2} *(\d{3}|\(\d{3}\)) *(\d[ \-]?){7}$/;
+var VALID_EMAIL = /^[_\-a-zа-я0-9]+@[_\-a-zа-я0-9]+(\.[a-zа-я0-9]+)?(\.[a-zа-я]+)$/i;
 
 var phoneBook = [];
 
@@ -10,12 +10,15 @@ var phoneBook = [];
    Функция добавления записи в телефонную книгу.
    На вход может прийти что угодно, будьте осторожны.
 */
-var add = function(name, phone, email) {
+module.exports.add  = function add (name, phone, email) {
+    var isValidName = VALID_NAME.test(name);
+    var isValidPhone = VALID_PHONE.test(phone);
+    var isValidEmail = VALID_EMAIL.test(email);
     /* Проверка записей на валидность. */
-    if(VALID_NAME.test(name)
-        && VALID_PHONE.test(phone)
-        && VALID_EMAIL.test(email)) {
-        phoneBook.push(new contact(name, phone, email));
+    if(isValidName
+        && isValidPhone
+        && isValidEmail) {
+        phoneBook.push(new Contact(name, phone, email));
     }
 };
 
@@ -23,111 +26,138 @@ var add = function(name, phone, email) {
    Функция поиска записи в телефонную книгу.
    Поиск ведется по всем полям.
 */
-var find = function(query) {
-    var counter = 0;
-    /* Проверяем если такая запись. */
-    for (var i=0; i<phoneBook.length; ++i) {
-        if (phoneBook[i].compare(query)) {
-            console.log(phoneBook[i].toString());
-            ++counter;
-        }
+module.exports.find = function find (query) {
+    var indexes = _findByQuery(query);
+    var length = indexes.length;
+    /* Вывод в консоль найденных записей */
+    console.log('Найдено: '+length);
+    for (var i=0; i<length; ++i) {
+        var index = indexes[i];
+        console.log(phoneBook[index].toString());
     }
-    /* Выводим кол-во найденных записей */
-    console.log('Всего найдено: ' + counter + '\r\n');
 };
 
 /*
    Функция удаления записи в телефонной книге.
 */
-var remove = function(query) {
-    var counter = 0;
-    /* Проверяем если такая запись. */
-    for (var i=0; i<phoneBook.length; ++i) {
-        if (phoneBook[i].compare(query)) {
-            console.log(phoneBook[i].toString());
-            phoneBook.splice(i--, 1);
-            ++counter;
-        }
+module.exports.remove = function remove (query) {
+    var indexes = _findByQuery(query);
+    var length = indexes.length;
+    /* Вывод в консоль найденных записей */
+    console.log('Удалено: '+length);
+    for (var i=0; i<length; ++i) {
+        var index = indexes[i];
+        console.log(phoneBook[index].toString());
+        phoneBook.splice(index, 1);
     }
-    /* Выводим кол-во удаленных записей */
-    console.log('Всего удалено: ' + counter + '\r\n');
 };
 
 /*
    Функция импорта записей из файла (задача со звёздочкой!).
 */
-var importFromCsv = function(filename) {
+module.exports.importFromCsv = function importFromCsv (filename) {
     var data = require('fs').readFileSync(filename, 'utf-8');
     /* Windows - '\r\n', Unix - '\n' */
     var dataArray = data.split(/\r\n|\n/g);
     for (var i=0; i<dataArray.length; ++i) {
         var record = dataArray[i].split(';');
-        add(record[0], record[1], record[2]);
+        module.exports.add(record[0], record[1], record[2]);
     }
 };
 
 /*
    Функция вывода всех телефонов в виде ASCII (задача со звёздочкой!).
 */
-var showTable = function() {
-    var width = 25;
-    var result = '';
+module.exports.showTable = function showTable () {
     /* Формирование таблицы. */
-    result += '┌' + makeString('-', width) +
-                '┬' + makeString('-', width) +
-                '╥' + makeString('-', width) + '┐\r\n';
-    result += '│' + ' Имя' + makeString(' ', width-4) +
-                '│' + ' Телефон' + makeString(' ', width-8) +
-                '║' + ' Email' + makeString(' ', width-6) + '│\r\n';
-    result += '├' + makeString('-', width) +
-                '┼' + makeString('-', width) +
-                '╫' + makeString('-', width) + '┤\r\n';
-    for (var i=0; i<phoneBook.length; ++i) {
-        result += '│' + phoneBook[i].name + makeString(' ', width-phoneBook[i].name.length) +
-                    '│' + phoneBook[i].phone + makeString(' ', width-phoneBook[i].phone.length) +
-                    '║' + phoneBook[i].email + makeString(' ', width-phoneBook[i].email.length) +
-                    '│\r\n';
-    }
-    result += '└' + makeString('-', width) +
-                '┴' + makeString('-', width) +
-                '╨' + makeString('-', width) + '┘\r\n';
-    console.log(result);
-};
-
-/*
-    Функция для генерации строк повторяющихся символов.
- */
-
-var makeString = function(char, amount) {
-    var result = '';
-    while (amount--) {
-        result += char;
-    }
-    return result;
+    var table = new Table(25, 25, 25);
+    console.log(table.printLine('┌', '┬', '╥', '┐'));
+    console.log(table.printInfo('Имя', 'Телефон', 'Email'));
+    console.log(table.printLine('├', '┼', '╫', '┤'));
+    phoneBook.forEach(function (record) {
+        console.log(table.printInfo(record.name, _formatPhone(record.phone), record.email));
+    });
+    console.log(table.printLine('└', '┴', '╨', '┘'));
 };
 
 /*
     Создание объекта Контакт. 3 поля, 2 метода.
  */
-var contact = function(name, phone, email) {
+function Contact(name, phone, email) {
     this.name  = name;
     this.phone = phone.replace(/[\+\-\s+\(\)]/g, '');
     this.email = email;
     this.compare = function(query) {
-        return query === undefined
-            || this.name.indexOf(query) >= 0
+        return this.name.indexOf(query) >= 0
             || this.phone.indexOf(query.replace(/[\+\-\s+\(\)]/g, '')) >= 0
             || this.email.indexOf(query) >= 0;
     };
     this.toString = function() {
         return this.name + ', '
-            + this.phone + ', '
+            + _formatPhone(this.phone) + ', '
             + this.email;
     };
-};
+}
 
-module.exports.add = add;
-module.exports.find = find;
-module.exports.remove = remove;
-module.exports.importFromCsv = importFromCsv;
-module.exports.showTable = showTable;
+/*
+ Создание объекта Таблица.
+ */
+function Table(widthName, widthPhone, widthEmail) {
+    this.widthName = widthName;
+    this.widthPhone = widthPhone;
+    this.widthEmail = widthEmail;
+    this.printLine = function(charLeft, charMidLeft, charMidRight, charRight) {
+        var result = '';
+        result += charLeft + this._repeat('-', widthName)
+                + charMidLeft + this._repeat('-', widthPhone)
+                + charMidRight + this._repeat('-', widthEmail)
+                + charRight;
+        return result;
+    };
+    this.printInfo = function(name, phone, email) {
+        var result = '';
+        result += '│ ' + name + this._repeat(' ', widthName - name.length - 1)
+                    + '│ ' + phone + this._repeat(' ', widthPhone - phone.length - 1)
+                    + '║ ' + email + this._repeat(' ', widthEmail - email.length - 1)
+                    + '│';
+        return result;
+    };
+    this._repeat = function(string, count) {
+        var result = '';
+        for (var i=0; i<count; ++i) {
+            result += string;
+        }
+        return result;
+    };
+}
+
+/*
+ Поиск по запросу в телефонной книге.
+ */
+function _findByQuery (query) {
+    var indexList = [];
+    /* Проверяем если такая запись. */
+    for (var i=0; i<phoneBook.length; ++i) {
+        if (phoneBook[i].compare(query)) {
+            indexList.push(i);
+        }
+    }
+    /* Возвращаем массив индексов */
+    return indexList;
+}
+
+/*
+ Приводим номера телефонов к нужному виду.
+ */
+function _formatPhone(phone) {
+    var result = '';
+    /* Правильный формат: +7 (999) 666-7-778 */
+    var lengthCountry = phone.length - 10;
+    result += '+';
+    result += phone.substr(0, lengthCountry);
+    result += ' (' + phone.substr(lengthCountry, 3) + ') ';
+    result += phone.substr(lengthCountry + 3, 3);
+    result += '-' + phone.substr(lengthCountry + 6, 2);
+    result += '-' + phone.substr(lengthCountry + 8, 2);
+    return result;
+}
